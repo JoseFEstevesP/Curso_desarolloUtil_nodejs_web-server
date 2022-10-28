@@ -1,5 +1,5 @@
-import {Router} from 'express';
-import { User_bd } from '../db.js';
+import { Router } from 'express';
+import userModel from '../schemas/userSchemas.js';
 const accountRouters = Router();
 // =====================
 // midelware q se ejecuta antes y debuelve la ip
@@ -8,41 +8,40 @@ const accountRouters = Router();
 // 	next();
 // });
 // Obtener los detalles de una cuenta apartir de id
-accountRouters.get('/:guid', (req, res) => {
+accountRouters.get('/:guid', async (req, res) => {
 	const { guid } = req.params;
-	const user = User_bd.find(item => item.guid === guid);
+	const user = await userModel.findById(guid).exec();
 	if (!user) return res.status(404).send('not found this user');
 	return res.send(user);
 });
 // obtener una nueva cuenta
-accountRouters.post('/', (req, res) => {
+accountRouters.post('/', async (req, res) => {
 	const { guid, name } = req.body;
 	if (!(guid, name)) return res.status(409).send('id and name not undefined');
-	const user = User_bd.find(item => item.guid === guid);
+	const user = await userModel.findById(guid).exec();
 	if (user) return res.status(409).send('this users already exists');
-	User_bd.push({
-		guid,
-		name,
-	});
-	return res.send(User_bd);
+	const newUser = new userModel({ _id: guid, name });
+	await newUser.save();
+	return res.send('usuario registrado');
 });
 // actualizar una cuenta el nombre de una cuenta
-accountRouters.patch('/:guid', (req, res) => {
+accountRouters.patch('/:guid', async (req, res) => {
 	const { guid } = req.params;
 	const { name } = req.body;
 	if (!name) return res.status(400).send('the name this  users undefined');
-	const userUpdate = User_bd.find(item => item.guid === guid);
+	const userUpdate = await userModel.findById(guid).exec();
 	if (!userUpdate) return res.status(404).send('not found this user');
 	userUpdate.name = name;
+	await userUpdate.save()
 	return res.send(userUpdate);
 });
 // eliminar una cueta
-accountRouters.delete('/:guid', (req, res) => {
+accountRouters.delete('/:guid', async (req, res) => {
 	const { guid } = req.params;
-	const userIndex = User_bd.findIndex(item => item.guid === guid);
-	if (userIndex === -1) return res.status(404).send('not found this user');
-	User_bd.splice(userIndex, 1);
-	return res.send(User_bd);
+	const userIndex = await userModel.findById(guid).exec();
+	if (!userIndex) return res.status(404).send('not found this user');
+	userIndex.remove()
+	return res.send('usuario eliminado');
 });
 // ===================
 export default accountRouters;
